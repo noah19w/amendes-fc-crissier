@@ -17,22 +17,24 @@ import {
   CircleDollarSign,
   Lock,
   LockOpen,
+  BarChart3,
+  Printer,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const COLORS = {
-  bg: "#0b1f14",
-  panel: "#16311f",
-  panelBorder: "#3d6a4c",
-  chip: "#1f4128",
-  chipBorder: "#4a7d5a",
-  textMain: "#ffffff",
-  textSoft: "#c9e3cf",
-  textFaint: "#7fa389",
-  gold: "#f0c33f",
-  goldDark: "#0b1f14",
-  entryBg: "#0f2818",
-  danger: "#e0574f",
+  bg: "#16233f",
+  panel: "#1f3159",
+  panelBorder: "#3a4f85",
+  chip: "#243a68",
+  chipBorder: "#4a63a0",
+  textMain: "#f5f7fb",
+  textSoft: "#c9d4ec",
+  textFaint: "#8695c0",
+  gold: "#e8434d",
+  goldDark: "#ffffff",
+  entryBg: "#1a2c52",
+  danger: "#f4a259",
 };
 
 /* Barème officiel FC Crissier — saison 2026-2027 */
@@ -175,6 +177,7 @@ function DeleteButton({ onConfirm, size = 15 }) {
 
 const TABS = [
   { id: "suivi", label: "Suivi", icon: Wallet },
+  { id: "graphique", label: "Graphique", icon: BarChart3 },
   { id: "historique", label: "Historique", icon: History },
   { id: "bareme", label: "Barème", icon: ListChecks },
   { id: "charte", label: "Charte", icon: ScrollText },
@@ -368,6 +371,18 @@ export default function App() {
 
   const chartData = monthsOfYear.map((m) => ({ name: shortMonthLabel(m), total: monthTotal(m) }));
 
+  const categoryTotals = fineTypes
+    .map((ft) => ({
+      id: ft.id,
+      label: ft.label,
+      total: yearEntries.filter((e) => e.fineTypeId === ft.id).reduce((sum, e) => sum + e.amount, 0),
+    }))
+    .filter((c) => c.total > 0)
+    .sort((a, b) => b.total - a.total);
+  const maxCategoryTotal = Math.max(1, ...categoryTotals.map((c) => c.total));
+
+  const printRows = sortedPlayers.map((pl) => ({ name: pl.name, total: playerTotal(pl.id) }));
+
   const historyMonths = Array.from(new Set(entries.map((e) => e.month)))
     .sort()
     .reverse()
@@ -445,7 +460,7 @@ export default function App() {
               padding: "3px 9px",
               border: "none",
               cursor: "pointer",
-              background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(240, 195, 63, 0.15)",
+              background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
               color: en.paid ? "#4ade80" : COLORS.gold,
             }}
           >
@@ -459,13 +474,34 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.textMain, fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.textMain, fontFamily: "'Inter', sans-serif", position: "relative", overflow: "hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap');
         .display-font { font-family: 'Archivo Black', sans-serif; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+        .print-sheet { display: none; }
+        @media print {
+          .no-print { display: none !important; }
+          .print-sheet { display: block !important; }
+        }
       `}</style>
 
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundImage: "url('https://www.fccrissier.ch/images/LOGO_FC_CRISSIER_SITE_3-cm.png')",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center 35%",
+          backgroundSize: "min(480px, 85%)",
+          opacity: 0.07,
+          filter: "grayscale(0.15)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      <div className="no-print" style={{ position: "relative", zIndex: 1 }}>
       <header style={{ borderBottom: `1px solid ${COLORS.panelBorder}`, padding: "22px 20px 0" }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 18 }}>
@@ -480,7 +516,7 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 2 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 2 }}>
             {TABS.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
@@ -498,12 +534,12 @@ export default function App() {
                     border: "none",
                     borderBottom: active ? `2px solid ${COLORS.gold}` : "2px solid transparent",
                     color: active ? COLORS.gold : COLORS.textFaint,
-                    fontSize: 10.5,
+                    fontSize: 9.5,
                     fontWeight: 600,
                     cursor: "pointer",
                   }}
                 >
-                  <Icon size={15} />
+                  <Icon size={14} />
                   {t.label}
                 </button>
               );
@@ -542,6 +578,13 @@ export default function App() {
               </div>
             </div>
 
+            <button
+              onClick={() => window.print()}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13, fontWeight: 600, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 0", color: COLORS.textMain, background: "transparent", cursor: "pointer" }}
+            >
+              <Printer size={15} /> Exporter le mois ({monthLabel(month)}) en PDF
+            </button>
+
             {(unpaidByPlayer.length > 0 || teamUnpaid > 0) && (
               <div style={cardStyle}>
                 <h4 style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMain, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 6 }}>
@@ -563,25 +606,6 @@ export default function App() {
                 </div>
               </div>
             )}
-
-            <div style={cardStyle}>
-              <h4 style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMain, margin: "0 0 12px" }}>Évolution mensuelle — {year}</h4>
-              <div style={{ width: "100%", height: 160 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.panelBorder} vertical={false} />
-                    <XAxis dataKey="name" tick={{ fill: COLORS.textFaint, fontSize: 10 }} axisLine={{ stroke: COLORS.panelBorder }} tickLine={false} />
-                    <YAxis tick={{ fill: COLORS.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ background: COLORS.entryBg, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, fontSize: 12 }}
-                      labelStyle={{ color: COLORS.textMain }}
-                      formatter={(v) => [`${v.toFixed(2)}.-`, "Total"]}
-                    />
-                    <Bar dataKey="total" fill={COLORS.gold} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div style={{ position: "relative" }}>
@@ -840,6 +864,76 @@ export default function App() {
           </div>
         )}
 
+        {/* ---------------- GRAPHIQUE ---------------- */}
+        {tab === "graphique" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <h2 className="display-font" style={{ fontSize: 20, color: COLORS.textMain, marginBottom: 4 }}>Évolution mensuelle</h2>
+                <p style={{ fontSize: 13, color: COLORS.textFaint, margin: 0 }}>Total des amendes par mois pour l'année sélectionnée.</p>
+              </div>
+              <div style={{ position: "relative" }}>
+                <select
+                  value={year}
+                  onChange={(e) => setYear(parseInt(e.target.value, 10))}
+                  style={{ appearance: "none", background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 36px 10px 16px", fontSize: 14, fontWeight: 600, color: COLORS.textMain }}
+                >
+                  {availableYears.map((y) => (
+                    <option key={y} value={y} style={{ background: COLORS.panel, color: COLORS.textMain }}>{y}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} color={COLORS.textSoft} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <div style={{ width: "100%", height: 260 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.panelBorder} vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: COLORS.textFaint, fontSize: 11 }} axisLine={{ stroke: COLORS.panelBorder }} tickLine={false} />
+                    <YAxis tick={{ fill: COLORS.textFaint, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: COLORS.entryBg, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, fontSize: 12 }}
+                      labelStyle={{ color: COLORS.textMain }}
+                      formatter={(v) => [`${v.toFixed(2)}.-`, "Total"]}
+                    />
+                    <Bar dataKey="total" fill={COLORS.gold} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+                <span style={{ color: COLORS.textSoft }}>Total {year}</span>
+                <span className="display-font" style={{ color: COLORS.gold, fontSize: 16 }}>{totalYear.toFixed(2)}.-</span>
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <h4 style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMain, margin: "0 0 14px" }}>Répartition par catégorie — {year}</h4>
+              {categoryTotals.length === 0 ? (
+                <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic", margin: 0 }}>Aucune amende enregistrée pour {year}.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {categoryTotals.map((c) => (
+                    <div key={c.id}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
+                        <span style={{ color: COLORS.textSoft }}>{c.label}</span>
+                        <span style={{ color: COLORS.gold, fontWeight: 700 }}>{c.total.toFixed(2)}.-</span>
+                      </div>
+                      <div style={{ width: "100%", height: 6, background: COLORS.chip, borderRadius: 999, overflow: "hidden" }}>
+                        <div style={{ width: `${(c.total / maxCategoryTotal) * 100}%`, height: "100%", background: COLORS.gold, borderRadius: 999 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ---------------- HISTORIQUE ---------------- */}
         {tab === "historique" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -936,6 +1030,45 @@ export default function App() {
           {toast}
         </div>
       )}
+      </div>
+
+      <div className="print-sheet" style={{ background: "#ffffff", color: "#111111", padding: 32, fontFamily: "'Inter', sans-serif" }}>
+        <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>FC Crissier — Caisse des amendes</h1>
+        <h2 style={{ fontSize: 16, fontWeight: 500, color: "#444", margin: "0 0 24px" }}>Récapitulatif — {monthLabel(month)}</h2>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", borderBottom: "2px solid #111", padding: "6px 4px" }}>Joueur</th>
+              <th style={{ textAlign: "right", borderBottom: "2px solid #111", padding: "6px 4px" }}>Montant dû</th>
+              <th style={{ textAlign: "center", borderBottom: "2px solid #111", padding: "6px 4px", width: 90 }}>Payé</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printRows.map((r) => (
+              <tr key={r.name}>
+                <td style={{ borderBottom: "1px solid #ccc", padding: "8px 4px" }}>{r.name}</td>
+                <td style={{ textAlign: "right", borderBottom: "1px solid #ccc", padding: "8px 4px" }}>{r.total.toFixed(2)}.-</td>
+                <td style={{ borderBottom: "1px solid #ccc", padding: "8px 4px" }}></td>
+              </tr>
+            ))}
+            {teamTotal > 0 && (
+              <tr>
+                <td style={{ borderBottom: "1px solid #ccc", padding: "8px 4px", fontStyle: "italic" }}>Équipe (collectif)</td>
+                <td style={{ textAlign: "right", borderBottom: "1px solid #ccc", padding: "8px 4px" }}>{teamTotal.toFixed(2)}.-</td>
+                <td style={{ borderBottom: "1px solid #ccc", padding: "8px 4px" }}></td>
+              </tr>
+            )}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td style={{ padding: "10px 4px", fontWeight: 700, borderTop: "2px solid #111" }}>Total</td>
+              <td style={{ textAlign: "right", padding: "10px 4px", fontWeight: 700, borderTop: "2px solid #111" }}>{grandTotalMonth.toFixed(2)}.-</td>
+              <td style={{ borderTop: "2px solid #111" }}></td>
+            </tr>
+          </tfoot>
+        </table>
+        <p style={{ fontSize: 11, color: "#666", marginTop: 24 }}>Paiement dû le dernier vendredi du mois, lors de l'entraînement.</p>
+      </div>
     </div>
   );
 }
