@@ -200,6 +200,13 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [tab, setTab] = useState("suivi");
   const [closedMonths, setClosedMonths] = useState({});
+  const [readOnly] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("vue") === "lecture";
+    } catch (e) {
+      return false;
+    }
+  });
   // { targetId (playerId ou "__team__"), fineTypeId, date }
   const [pendingFine, setPendingFine] = useState(null);
 
@@ -242,6 +249,19 @@ export default function App() {
     setMonth(`${year}-${currentMonthPart}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
+
+  useEffect(() => {
+    if (readOnly && (tab === "bareme" || tab === "effectif")) setTab("suivi");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readOnly, tab]);
+
+  const readOnlyUrl = (() => {
+    try {
+      return `${window.location.origin}${window.location.pathname}?vue=lecture`;
+    } catch (e) {
+      return "";
+    }
+  })();
 
   function showToast(msg) {
     setToast(msg);
@@ -387,6 +407,8 @@ export default function App() {
 
   const printRows = sortedPlayers.map((pl) => ({ name: pl.name, total: playerTotal(pl.id) }));
 
+  const visibleTabs = readOnly ? TABS.filter((t) => t.id !== "bareme" && t.id !== "effectif") : TABS;
+
   const historyMonths = Array.from(new Set(entries.map((e) => e.month)))
     .sort()
     .reverse()
@@ -445,29 +467,48 @@ export default function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <span style={{ color: COLORS.gold, fontWeight: 700 }}>{en.amount.toFixed(2)}.-</span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePaid(en.id);
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 11,
-              fontWeight: 700,
-              borderRadius: 999,
-              padding: "3px 9px",
-              border: "none",
-              cursor: "pointer",
-              background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
-              color: en.paid ? "#4ade80" : COLORS.gold,
-            }}
-          >
-            {en.paid ? <CircleCheck size={12} /> : <CircleDollarSign size={12} />}
-            {en.paid ? "Payé" : "Impayé"}
-          </button>
-          <DeleteButton onConfirm={() => deleteEntry(en.id)} />
+          {readOnly ? (
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 700,
+                borderRadius: 999,
+                padding: "3px 9px",
+                background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
+                color: en.paid ? "#4ade80" : COLORS.gold,
+              }}
+            >
+              {en.paid ? <CircleCheck size={12} /> : <CircleDollarSign size={12} />}
+              {en.paid ? "Payé" : "Impayé"}
+            </span>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePaid(en.id);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                fontWeight: 700,
+                borderRadius: 999,
+                padding: "3px 9px",
+                border: "none",
+                cursor: "pointer",
+                background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
+                color: en.paid ? "#4ade80" : COLORS.gold,
+              }}
+            >
+              {en.paid ? <CircleCheck size={12} /> : <CircleDollarSign size={12} />}
+              {en.paid ? "Payé" : "Impayé"}
+            </button>
+          )}
+          {!readOnly && <DeleteButton onConfirm={() => deleteEntry(en.id)} />}
         </div>
       </div>
     );
@@ -507,7 +548,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 18 }}>
             <div>
               <p style={{ color: COLORS.gold, fontSize: 12, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
-                Caisse des amendes
+                Caisse des amendes {readOnly && "· lecture seule"}
               </p>
               <h1 className="display-font" style={{ fontSize: 28, color: COLORS.textMain, lineHeight: 1 }}>FC CRISSIER</h1>
             </div>
@@ -516,8 +557,8 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 2 }}>
-            {TABS.map((t) => {
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)`, gap: 2 }}>
+            {visibleTabs.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
               return (
@@ -658,8 +699,8 @@ export default function App() {
             {players.length === 0 && (
               <div style={{ border: `1px dashed ${COLORS.panelBorder}`, borderRadius: 12, padding: 32, textAlign: "center" }}>
                 <Users size={28} color={COLORS.textSoft} style={{ margin: "0 auto 12px" }} />
-                <p style={{ fontSize: 14, color: COLORS.textSoft, marginBottom: 16 }}>Aucun joueur pour l'instant. Ajoute l'effectif pour commencer.</p>
-                <button onClick={() => setTab("effectif")} style={goldBtn}>Ajouter des joueurs</button>
+                <p style={{ fontSize: 14, color: COLORS.textSoft, marginBottom: readOnly ? 0 : 16 }}>Aucun joueur pour l'instant.{!readOnly && " Ajoute l'effectif pour commencer."}</p>
+                {!readOnly && <button onClick={() => setTab("effectif")} style={goldBtn}>Ajouter des joueurs</button>}
               </div>
             )}
 
@@ -683,18 +724,22 @@ export default function App() {
 
                 {expanded["__team__"] && (
                   <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {teamFineTypes.map((ft) => (
-                        <button
-                          key={ft.id}
-                          onClick={(e) => { e.stopPropagation(); openFineForm("__team__", ft.id); }}
-                          style={{ fontSize: 13, fontWeight: 600, background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 999, padding: "7px 14px", color: COLORS.textMain, cursor: "pointer" }}
-                        >
-                          {ft.label} <span style={{ color: COLORS.gold }}>{ft.amount}.-</span>
-                        </button>
-                      ))}
-                    </div>
-                    <FineForm targetId="__team__" />
+                    {!readOnly && (
+                      <>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {teamFineTypes.map((ft) => (
+                            <button
+                              key={ft.id}
+                              onClick={(e) => { e.stopPropagation(); openFineForm("__team__", ft.id); }}
+                              style={{ fontSize: 13, fontWeight: 600, background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 999, padding: "7px 14px", color: COLORS.textMain, cursor: "pointer" }}
+                            >
+                              {ft.label} <span style={{ color: COLORS.gold }}>{ft.amount}.-</span>
+                            </button>
+                          ))}
+                        </div>
+                        <FineForm targetId="__team__" />
+                      </>
+                    )}
                     <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 10, borderTop: `1px solid ${COLORS.panelBorder}` }}>
                       {teamEntries.length === 0 ? (
                         <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic", margin: 0 }}>Aucune amende collective ce mois-ci.</p>
@@ -730,18 +775,22 @@ export default function App() {
 
                     {isOpen && (
                       <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {individualFineTypes.map((ft) => (
-                            <button
-                              key={ft.id}
-                              onClick={(e) => { e.stopPropagation(); openFineForm(pl.id, ft.id); }}
-                              style={{ fontSize: 13, fontWeight: 600, background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 999, padding: "7px 14px", color: COLORS.textMain, cursor: "pointer" }}
-                            >
-                              {ft.label} <span style={{ color: COLORS.gold }}>{ft.amount}.-</span>
-                            </button>
-                          ))}
-                        </div>
-                        <FineForm targetId={pl.id} />
+                        {!readOnly && (
+                          <>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                              {individualFineTypes.map((ft) => (
+                                <button
+                                  key={ft.id}
+                                  onClick={(e) => { e.stopPropagation(); openFineForm(pl.id, ft.id); }}
+                                  style={{ fontSize: 13, fontWeight: 600, background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 999, padding: "7px 14px", color: COLORS.textMain, cursor: "pointer" }}
+                                >
+                                  {ft.label} <span style={{ color: COLORS.gold }}>{ft.amount}.-</span>
+                                </button>
+                              ))}
+                            </div>
+                            <FineForm targetId={pl.id} />
+                          </>
+                        )}
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 10, borderTop: `1px solid ${COLORS.panelBorder}` }}>
                           {pEntries.length === 0 ? (
                             <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic", margin: 0 }}>Aucune amende ce mois-ci.</p>
@@ -759,7 +808,7 @@ export default function App() {
         )}
 
         {/* ---------------- BARÈME ---------------- */}
-        {tab === "bareme" && (
+        {tab === "bareme" && !readOnly && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
               <h2 className="display-font" style={{ fontSize: 20, color: COLORS.textMain, marginBottom: 4 }}>Barème des sanctions</h2>
@@ -962,60 +1011,85 @@ export default function App() {
                   </div>
                   <span className="display-font" style={{ fontSize: 17, color: COLORS.gold }}>{total.toFixed(2)}.-</span>
                 </div>
-                <div style={{ display: "flex", gap: 16, fontSize: 12.5, color: COLORS.textSoft, marginBottom: 12 }}>
+                <div style={{ display: "flex", gap: 16, fontSize: 12.5, color: COLORS.textSoft, marginBottom: closed || !readOnly ? 12 : 0 }}>
                   <span>Payé : <strong style={{ color: "#4ade80" }}>{paid.toFixed(2)}.-</strong></span>
                   <span>Impayé : <strong style={{ color: COLORS.gold }}>{unpaid.toFixed(2)}.-</strong></span>
                 </div>
-                <button
-                  onClick={() => toggleMonthClosed(m)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    width: "100%",
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    borderRadius: 8,
-                    padding: "8px 0",
-                    border: `1px solid ${COLORS.panelBorder}`,
-                    background: "transparent",
-                    color: COLORS.textSoft,
-                    cursor: "pointer",
-                  }}
-                >
-                  {closed ? <LockOpen size={13} /> : <Lock size={13} />}
-                  {closed ? "Rouvrir ce mois" : "Clôturer ce mois"}
-                </button>
+                {!readOnly && (
+                  <button
+                    onClick={() => toggleMonthClosed(m)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      width: "100%",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      borderRadius: 8,
+                      padding: "8px 0",
+                      border: `1px solid ${COLORS.panelBorder}`,
+                      background: "transparent",
+                      color: COLORS.textSoft,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {closed ? <LockOpen size={13} /> : <Lock size={13} />}
+                    {closed ? "Rouvrir ce mois" : "Clôturer ce mois"}
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
 
         {/* ---------------- EFFECTIF ---------------- */}
-        {tab === "effectif" && (
-          <div style={cardStyle}>
-            <h4 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMain, margin: "0 0 12px" }}>Effectif ({players.length})</h4>
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              <input
-                value={newPlayer}
-                onChange={(e) => setNewPlayer(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addPlayer()}
-                placeholder="Nom du joueur"
-                style={{ ...inputStyle, flex: 1 }}
-              />
-              <button onClick={addPlayer} style={{ ...goldBtn, padding: "10px 14px" }} aria-label="Ajouter joueur">
-                <Plus size={16} />
-              </button>
+        {tab === "effectif" && !readOnly && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={cardStyle}>
+              <h4 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMain, margin: "0 0 12px" }}>Effectif ({players.length})</h4>
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                <input
+                  value={newPlayer}
+                  onChange={(e) => setNewPlayer(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addPlayer()}
+                  placeholder="Nom du joueur"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={addPlayer} style={{ ...goldBtn, padding: "10px 14px" }} aria-label="Ajouter joueur">
+                  <Plus size={16} />
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {players.length === 0 && <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic" }}>Aucun joueur enregistré.</p>}
+                {sortedPlayers.map((pl) => (
+                  <div key={pl.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 14, color: COLORS.textMain, padding: "6px 0", borderBottom: `1px solid ${COLORS.panelBorder}` }}>
+                    <span>{pl.name}</span>
+                    <DeleteButton onConfirm={() => deletePlayer(pl.id)} />
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {players.length === 0 && <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic" }}>Aucun joueur enregistré.</p>}
-              {sortedPlayers.map((pl) => (
-                <div key={pl.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 14, color: COLORS.textMain, padding: "6px 0", borderBottom: `1px solid ${COLORS.panelBorder}` }}>
-                  <span>{pl.name}</span>
-                  <DeleteButton onConfirm={() => deletePlayer(pl.id)} />
+
+            <div style={cardStyle}>
+              <h4 style={{ fontSize: 14, fontWeight: 700, color: COLORS.textMain, margin: "0 0 6px" }}>Partager avec les joueurs</h4>
+              <p style={{ fontSize: 12.5, color: COLORS.textFaint, margin: "0 0 14px" }}>
+                Ce lien affiche la caisse en lecture seule — les joueurs peuvent consulter leurs amendes sans rien modifier.
+              </p>
+              {readOnlyUrl && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                  <div style={{ background: "#ffffff", padding: 10, borderRadius: 10 }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(readOnlyUrl)}`}
+                      alt="QR code — accès lecture seule"
+                      width={200}
+                      height={200}
+                      style={{ display: "block" }}
+                    />
+                  </div>
+                  <p style={{ fontSize: 11.5, color: COLORS.textFaint, textAlign: "center", wordBreak: "break-all", margin: 0 }}>{readOnlyUrl}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
