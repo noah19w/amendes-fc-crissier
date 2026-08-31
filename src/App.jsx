@@ -371,6 +371,10 @@ export default function App() {
 
   const chartData = monthsOfYear.map((m) => ({ name: shortMonthLabel(m), total: monthTotal(m) }));
 
+  const sortedPlayers = [...players].sort((a, b) =>
+    a.name.localeCompare(b.name, "fr", { sensitivity: "base" })
+  );
+
   const categoryTotals = fineTypes
     .map((ft) => ({
       id: ft.id,
@@ -391,10 +395,6 @@ export default function App() {
       const paid = monthPaidTotal(m);
       return { m, total, paid, unpaid: total - paid, closed: !!closedMonths[m] };
     });
-
-  const sortedPlayers = [...players].sort((a, b) =>
-    a.name.localeCompare(b.name, "fr", { sensitivity: "base" })
-  );
 
   const cardStyle = { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: 16 };
   const inputStyle = { background: COLORS.bg, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 12px", fontSize: 14, color: COLORS.textMain };
