@@ -12,7 +12,13 @@ import {
   ListChecks,
   UserRound,
   ShieldAlert,
+  History,
+  CircleCheck,
+  CircleDollarSign,
+  Lock,
+  LockOpen,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const COLORS = {
   bg: "#0b1f14",
@@ -169,6 +175,7 @@ function DeleteButton({ onConfirm, size = 15 }) {
 
 const TABS = [
   { id: "suivi", label: "Suivi", icon: Wallet },
+  { id: "historique", label: "Historique", icon: History },
   { id: "bareme", label: "Barème", icon: ListChecks },
   { id: "charte", label: "Charte", icon: ScrollText },
   { id: "effectif", label: "Effectif", icon: UserRound },
@@ -189,6 +196,7 @@ export default function App() {
   const [newFineScope, setNewFineScope] = useState("individual");
   const [toast, setToast] = useState(null);
   const [tab, setTab] = useState("suivi");
+  const [closedMonths, setClosedMonths] = useState({});
   // { targetId (playerId ou "__team__"), fineTypeId, date }
   const [pendingFine, setPendingFine] = useState(null);
 
@@ -200,6 +208,7 @@ export default function App() {
           if (data.players) setPlayers(data.players);
           if (data.fineTypes) setFineTypes(data.fineTypes);
           if (data.entries) setEntries(data.entries);
+          if (data.closedMonths) setClosedMonths(data.closedMonths);
         }
       } catch (e) {
         console.error("Erreur de chargement Supabase", e);
@@ -222,8 +231,8 @@ export default function App() {
 
   useEffect(() => {
     if (!loaded) return;
-    persist({ players, fineTypes, entries });
-  }, [players, fineTypes, entries, loaded, persist]);
+    persist({ players, fineTypes, entries, closedMonths });
+  }, [players, fineTypes, entries, closedMonths, loaded, persist]);
 
   useEffect(() => {
     const currentMonthPart = month.split("-")[1];
@@ -288,6 +297,7 @@ export default function App() {
         amount: ft.amount,
         month: entryMonth,
         date: pendingFine.date,
+        paid: false,
         ts: Date.now(),
       },
     ]);
@@ -300,6 +310,14 @@ export default function App() {
 
   function deleteEntry(id) {
     setEntries((e) => e.filter((en) => en.id !== id));
+  }
+
+  function togglePaid(id) {
+    setEntries((es) => es.map((en) => (en.id === id ? { ...en, paid: !en.paid } : en)));
+  }
+
+  function toggleMonthClosed(m) {
+    setClosedMonths((c) => ({ ...c, [m]: !c[m] }));
   }
 
   function toggleExpanded(key) {
@@ -332,6 +350,32 @@ export default function App() {
   function monthTotal(m) {
     return entries.filter((e) => e.month === m).reduce((sum, e) => sum + e.amount, 0);
   }
+
+  function monthPaidTotal(m) {
+    return entries.filter((e) => e.month === m && e.paid).reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  function playerUnpaid(playerId) {
+    return entries.filter((e) => e.playerId === playerId && !e.paid).reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  const teamUnpaid = entries.filter((e) => e.playerId === null && !e.paid).reduce((sum, e) => sum + e.amount, 0);
+
+  const unpaidByPlayer = players
+    .map((pl) => ({ ...pl, unpaid: playerUnpaid(pl.id) }))
+    .filter((pl) => pl.unpaid > 0)
+    .sort((a, b) => b.unpaid - a.unpaid);
+
+  const chartData = monthsOfYear.map((m) => ({ name: shortMonthLabel(m), total: monthTotal(m) }));
+
+  const historyMonths = Array.from(new Set(entries.map((e) => e.month)))
+    .sort()
+    .reverse()
+    .map((m) => {
+      const total = monthTotal(m);
+      const paid = monthPaidTotal(m);
+      return { m, total, paid, unpaid: total - paid, closed: !!closedMonths[m] };
+    });
 
   const sortedPlayers = [...players].sort((a, b) =>
     a.name.localeCompare(b.name, "fr", { sensitivity: "base" })
@@ -384,8 +428,30 @@ export default function App() {
           <span style={{ fontWeight: 500 }}>{en.label}</span>
           {en.date && <span style={{ fontSize: 11.5, color: COLORS.textFaint }}>{formatDate(en.date)}</span>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <span style={{ color: COLORS.gold, fontWeight: 700 }}>{en.amount.toFixed(2)}.-</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePaid(en.id);
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 999,
+              padding: "3px 9px",
+              border: "none",
+              cursor: "pointer",
+              background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(240, 195, 63, 0.15)",
+              color: en.paid ? "#4ade80" : COLORS.gold,
+            }}
+          >
+            {en.paid ? <CircleCheck size={12} /> : <CircleDollarSign size={12} />}
+            {en.paid ? "Payé" : "Impayé"}
+          </button>
           <DeleteButton onConfirm={() => deleteEntry(en.id)} />
         </div>
       </div>
@@ -414,7 +480,7 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 2 }}>
             {TABS.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
@@ -432,12 +498,12 @@ export default function App() {
                     border: "none",
                     borderBottom: active ? `2px solid ${COLORS.gold}` : "2px solid transparent",
                     color: active ? COLORS.gold : COLORS.textFaint,
-                    fontSize: 12,
+                    fontSize: 10.5,
                     fontWeight: 600,
                     cursor: "pointer",
                   }}
                 >
-                  <Icon size={16} />
+                  <Icon size={15} />
                   {t.label}
                 </button>
               );
@@ -473,6 +539,47 @@ export default function App() {
                   <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: COLORS.textFaint, margin: 0, fontWeight: 600 }}>Cagnotte totale</p>
                   <p className="display-font" style={{ fontSize: 18, color: COLORS.gold, margin: 0 }}>{totalAllTime.toFixed(2)}.-</p>
                 </div>
+              </div>
+            </div>
+
+            {(unpaidByPlayer.length > 0 || teamUnpaid > 0) && (
+              <div style={cardStyle}>
+                <h4 style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMain, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 6 }}>
+                  <CircleDollarSign size={15} color={COLORS.gold} /> Reste à payer
+                </h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {unpaidByPlayer.map((pl) => (
+                    <div key={pl.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13.5 }}>
+                      <span style={{ color: COLORS.textSoft }}>{pl.name}</span>
+                      <span style={{ color: COLORS.gold, fontWeight: 700 }}>{pl.unpaid.toFixed(2)}.-</span>
+                    </div>
+                  ))}
+                  {teamUnpaid > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13.5 }}>
+                      <span style={{ color: COLORS.textSoft }}>Équipe (collectif)</span>
+                      <span style={{ color: COLORS.gold, fontWeight: 700 }}>{teamUnpaid.toFixed(2)}.-</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div style={cardStyle}>
+              <h4 style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMain, margin: "0 0 12px" }}>Évolution mensuelle — {year}</h4>
+              <div style={{ width: "100%", height: 160 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.panelBorder} vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: COLORS.textFaint, fontSize: 10 }} axisLine={{ stroke: COLORS.panelBorder }} tickLine={false} />
+                    <YAxis tick={{ fill: COLORS.textFaint, fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: COLORS.entryBg, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, fontSize: 12 }}
+                      labelStyle={{ color: COLORS.textMain }}
+                      formatter={(v) => [`${v.toFixed(2)}.-`, "Total"]}
+                    />
+                    <Bar dataKey="total" fill={COLORS.gold} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
@@ -730,6 +837,64 @@ export default function App() {
               <h4 style={{ fontSize: 14, fontWeight: 700, color: COLORS.gold, margin: "0 0 8px" }}>Validité</h4>
               <p style={{ fontSize: 13.5, color: COLORS.textSoft, margin: 0 }}>{CHARTE_TEXT.validite}</p>
             </div>
+          </div>
+        )}
+
+        {/* ---------------- HISTORIQUE ---------------- */}
+        {tab === "historique" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <h2 className="display-font" style={{ fontSize: 20, color: COLORS.textMain, marginBottom: 4 }}>Historique des mois</h2>
+              <p style={{ fontSize: 13, color: COLORS.textFaint, margin: 0 }}>Clôture un mois une fois le paiement collecté, pour garder une trace claire.</p>
+            </div>
+
+            {historyMonths.length === 0 && (
+              <div style={{ border: `1px dashed ${COLORS.panelBorder}`, borderRadius: 12, padding: 32, textAlign: "center" }}>
+                <History size={28} color={COLORS.textSoft} style={{ margin: "0 auto 12px" }} />
+                <p style={{ fontSize: 14, color: COLORS.textSoft, margin: 0 }}>Aucune amende enregistrée pour l'instant.</p>
+              </div>
+            )}
+
+            {historyMonths.map(({ m, total, paid, unpaid, closed }) => (
+              <div key={m} style={cardStyle}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: COLORS.textMain, margin: 0 }}>{monthLabel(m)}</h3>
+                    {closed && (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#4ade80", background: "rgba(74, 222, 128, 0.15)", borderRadius: 999, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}>
+                        <Lock size={10} /> Clôturé
+                      </span>
+                    )}
+                  </div>
+                  <span className="display-font" style={{ fontSize: 17, color: COLORS.gold }}>{total.toFixed(2)}.-</span>
+                </div>
+                <div style={{ display: "flex", gap: 16, fontSize: 12.5, color: COLORS.textSoft, marginBottom: 12 }}>
+                  <span>Payé : <strong style={{ color: "#4ade80" }}>{paid.toFixed(2)}.-</strong></span>
+                  <span>Impayé : <strong style={{ color: COLORS.gold }}>{unpaid.toFixed(2)}.-</strong></span>
+                </div>
+                <button
+                  onClick={() => toggleMonthClosed(m)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    width: "100%",
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    borderRadius: 8,
+                    padding: "8px 0",
+                    border: `1px solid ${COLORS.panelBorder}`,
+                    background: "transparent",
+                    color: COLORS.textSoft,
+                    cursor: "pointer",
+                  }}
+                >
+                  {closed ? <LockOpen size={13} /> : <Lock size={13} />}
+                  {closed ? "Rouvrir ce mois" : "Clôturer ce mois"}
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
