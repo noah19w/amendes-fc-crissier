@@ -19,6 +19,8 @@ import {
   LockOpen,
   BarChart3,
   Printer,
+  Bell,
+  MessageCircle,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -123,6 +125,15 @@ function currentYear() {
 
 function monthsForYear(year) {
   return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
+}
+
+function lastFridayOfMonth(year, monthIndex0) {
+  const lastDay = new Date(year, monthIndex0 + 1, 0);
+  const dow = lastDay.getDay(); // 0=dim ... 5=ven, 6=sam
+  const diffToFriday = (dow - 5 + 7) % 7;
+  const friday = new Date(year, monthIndex0 + 1, 0 - diffToFriday);
+  friday.setHours(0, 0, 0, 0);
+  return friday;
 }
 
 /* Bouton "supprimer" avec confirmation en ligne (pas de popup superposée) */
@@ -268,6 +279,28 @@ export default function App() {
     setTimeout(() => setToast(null), 1600);
   }
 
+  function copyWhatsAppRecap() {
+    const rows = printRows.filter((r) => r.total > 0);
+    const lines = [];
+    lines.push(`📋 *Amendes FC Crissier — ${monthLabel(month)}*`);
+    lines.push("");
+    if (rows.length === 0 && teamTotal === 0) {
+      lines.push("Aucune amende ce mois-ci ✅");
+    } else {
+      rows.forEach((r) => lines.push(`• ${r.name} : ${r.total.toFixed(2)}.-`));
+      if (teamTotal > 0) lines.push(`• Équipe (collectif) : ${teamTotal.toFixed(2)}.-`);
+    }
+    lines.push("");
+    lines.push(`💰 *Total : ${grandTotalMonth.toFixed(2)}.-*`);
+    lines.push("");
+    lines.push("💳 Paiement : dernier vendredi du mois, à l'entraînement.");
+    const text = lines.join("\n");
+    navigator.clipboard
+      .writeText(text)
+      .then(() => showToast("Récapitulatif copié !"))
+      .catch(() => showToast("Impossible de copier"));
+  }
+
   function addPlayer() {
     const name = newPlayer.trim();
     if (!name) return;
@@ -409,6 +442,16 @@ export default function App() {
 
   const visibleTabs = readOnly ? TABS.filter((t) => t.id !== "bareme" && t.id !== "effectif") : TABS;
 
+  const paymentReminder = (() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const friday = lastFridayOfMonth(today.getFullYear(), today.getMonth());
+    const diffDays = Math.round((friday - today) / 86400000);
+    if (diffDays < 0 || diffDays > 5) return null;
+    const label = friday.toLocaleDateString("fr-CH", { weekday: "long", day: "numeric", month: "long" });
+    return { diffDays, label: label.charAt(0).toUpperCase() + label.slice(1) };
+  })();
+
   const historyMonths = Array.from(new Set(entries.map((e) => e.month)))
     .sort()
     .reverse()
@@ -535,8 +578,7 @@ export default function App() {
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center 35%",
           backgroundSize: "min(480px, 85%)",
-          opacity: 0.07,
-          filter: "grayscale(0.15)",
+          opacity: 0.08,
           pointerEvents: "none",
           zIndex: 0,
         }}
@@ -599,6 +641,19 @@ export default function App() {
         {/* ---------------- SUIVI ---------------- */}
         {tab === "suivi" && (
           <>
+            {paymentReminder && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(232, 67, 77, 0.12)", border: `1px solid ${COLORS.gold}`, borderRadius: 10, padding: "10px 14px" }}>
+                <Bell size={16} color={COLORS.gold} style={{ flexShrink: 0 }} />
+                <p style={{ fontSize: 12.5, color: COLORS.textMain, margin: 0 }}>
+                  {paymentReminder.diffDays === 0 ? (
+                    <><strong>Paiement aujourd'hui</strong> — dernier vendredi du mois, lors de l'entraînement.</>
+                  ) : (
+                    <><strong>Paiement dans {paymentReminder.diffDays} jour{paymentReminder.diffDays > 1 ? "s" : ""}</strong> — {paymentReminder.label}, lors de l'entraînement.</>
+                  )}
+                </p>
+              </div>
+            )}
+
             <div style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 40, height: 40, borderRadius: 10, background: COLORS.chip, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Wallet size={19} color={COLORS.gold} />
@@ -619,12 +674,20 @@ export default function App() {
               </div>
             </div>
 
-            <button
-              onClick={() => window.print()}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13, fontWeight: 600, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 0", color: COLORS.textMain, background: "transparent", cursor: "pointer" }}
-            >
-              <Printer size={15} /> Exporter le mois ({monthLabel(month)}) en PDF
-            </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button
+                onClick={() => window.print()}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 4px", color: COLORS.textMain, background: "transparent", cursor: "pointer" }}
+              >
+                <Printer size={14} /> Exporter en PDF
+              </button>
+              <button
+                onClick={copyWhatsAppRecap}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 4px", color: COLORS.textMain, background: "transparent", cursor: "pointer" }}
+              >
+                <MessageCircle size={14} /> Récap WhatsApp
+              </button>
+            </div>
 
             {(unpaidByPlayer.length > 0 || teamUnpaid > 0) && (
               <div style={cardStyle}>
