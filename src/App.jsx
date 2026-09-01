@@ -27,25 +27,25 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 const STORAGE_KEY = "fc-crissier-amendes-data-v3";
 
 const COLORS = {
-  bg: "#0a1128",
-  panel: "#121d42",
-  panelSoft: "#0e1836",
-  panelBorder: "#26356b",
-  chip: "#182752",
-  chipBorder: "#31437f",
-  textMain: "#f6f7fb",
-  textSoft: "#aab4d6",
-  textFaint: "#5f6c9a",
-  blue: "#3552a8",
-  blueDeep: "#1f3a7a",
-  red: "#e11e26",
-  redDeep: "#b71620",
-  white: "#f6f7fb",
-  gold: "#e11e26",
-  goldDark: "#ffffff",
-  entryBg: "#0e1836",
+  bg: "#050914",
+  panel: "#141f42",
+  panelSoft: "#0b1330",
+  panelBorder: "#2a3872",
+  chip: "#1b2856",
+  chipBorder: "#37478c",
+  textMain: "#f8f9fd",
+  textSoft: "#b1badd",
+  textFaint: "#6a76a8",
+  blue: "#3d5cc4",
+  blueDeep: "#1c2e6e",
+  red: "#e21b2c",
+  redDeep: "#a4121f",
+  white: "#f8f9fd",
+  gold: "#f2b632",
+  goldDark: "#22150a",
+  entryBg: "#101a3a",
   danger: "#f2a640",
-  success: "#34d399",
+  success: "#33d391",
 };
 
 const CATEGORIES = ["Ponctualité & présence", "Équipement & matériel", "Discipline", "Résultats sportifs", "Collectif", "Autre"];
@@ -97,6 +97,16 @@ const CHARTE_TEXT = {
 
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* Certaines amendes sauvegardées avant l'ajout du champ "catégorie" n'en ont pas —
+   on la retrouve via le barème par défaut (même id) plutôt que de les laisser dans "Autre". */
+function withCategory(fineTypes) {
+  return fineTypes.map((ft) => {
+    if (ft.category) return ft;
+    const def = DEFAULT_FINE_TYPES.find((d) => d.id === ft.id);
+    return { ...ft, category: def ? def.category : "Autre" };
+  });
 }
 
 function todayIso() {
@@ -280,7 +290,7 @@ export default function App() {
         const data = await loadData();
         if (data) {
           if (data.players) setPlayers(data.players);
-          if (data.fineTypes) setFineTypes(data.fineTypes);
+          if (data.fineTypes) setFineTypes(withCategory(data.fineTypes));
           if (data.entries) setEntries(data.entries);
           if (data.closedMonths) setClosedMonths(data.closedMonths);
         }
@@ -531,9 +541,27 @@ export default function App() {
       return { m, total, paid, unpaid: total - paid, closed: !!closedMonths[m] };
     });
 
-  const cardStyle = { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 14, padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.18)" };
+  const cardStyle = {
+    background: `linear-gradient(165deg, ${COLORS.panel} 0%, ${COLORS.panelSoft} 100%)`,
+    border: `1px solid ${COLORS.panelBorder}`,
+    borderRadius: 16,
+    padding: 16,
+    boxShadow: "0 8px 24px -8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)",
+  };
   const inputStyle = { background: COLORS.bg, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 12px", fontSize: 14, color: COLORS.textMain };
-  const goldBtn = { background: COLORS.red, color: "#ffffff", borderRadius: 999, padding: "10px 14px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 };
+  const goldBtn = {
+    background: `linear-gradient(135deg, ${COLORS.red} 0%, ${COLORS.redDeep} 100%)`,
+    color: "#ffffff",
+    borderRadius: 999,
+    padding: "10px 14px",
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 700,
+    boxShadow: "0 4px 14px -2px rgba(226,27,44,0.45)",
+  };
 
   function FineForm({ targetId }) {
     const formOpenHere = pendingFine && pendingFine.targetId === targetId;
@@ -591,7 +619,7 @@ export default function App() {
                 fontWeight: 700,
                 borderRadius: 999,
                 padding: "3px 9px",
-                background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
+                background: en.paid ? "rgba(51, 211, 145, 0.15)" : "rgba(242, 182, 50, 0.16)",
                 color: en.paid ? COLORS.success : COLORS.gold,
               }}
             >
@@ -614,7 +642,7 @@ export default function App() {
                 padding: "3px 9px",
                 border: "none",
                 cursor: "pointer",
-                background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
+                background: en.paid ? "rgba(51, 211, 145, 0.15)" : "rgba(242, 182, 50, 0.16)",
                 color: en.paid ? COLORS.success : COLORS.gold,
               }}
             >
@@ -632,7 +660,7 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap');
           @keyframes pulseLogo { 0%, 100% { opacity: 0.5; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1); } }
         `}</style>
         <img
@@ -640,7 +668,7 @@ export default function App() {
           alt="FC Crissier"
           style={{ width: 56, height: 56, objectFit: "contain", animation: "pulseLogo 1.3s ease-in-out infinite" }}
         />
-        <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 13, color: COLORS.textFaint, letterSpacing: "0.02em", margin: 0 }}>
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontSize: 14, color: COLORS.textFaint, letterSpacing: "0.03em", margin: 0 }}>
           Chargement de la caisse…
         </p>
       </div>
@@ -650,8 +678,8 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.textMain, fontFamily: "'Inter', sans-serif", position: "relative", overflow: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-        .display-font { font-family: 'Space Grotesk', sans-serif; font-variant-numeric: tabular-nums; }
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+        .display-font { font-family: 'Barlow Condensed', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
         .print-sheet { display: none; }
         @media print {
@@ -713,16 +741,34 @@ export default function App() {
 
       <div className="no-print" style={{ position: "relative", zIndex: 1 }}>
       <header style={{ background: `linear-gradient(180deg, ${COLORS.panelSoft} 0%, ${COLORS.bg} 100%)` }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 20px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 12, background: COLORS.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px rgba(0,0,0,0.35)" }}>
-              <Receipt size={21} color={COLORS.blueDeep} />
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "22px 20px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
+            <div
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: 14,
+                background: `linear-gradient(155deg, #ffffff 0%, #e7eaf5 100%)`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                boxShadow: `0 6px 18px -4px rgba(0,0,0,0.5), 0 0 0 1px ${COLORS.red}22`,
+                padding: 6,
+              }}
+            >
+              <img
+                src="https://www.fccrissier.ch/images/LOGO_FC_CRISSIER_SITE_3-cm.png"
+                alt="FC Crissier"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h1 className="display-font" style={{ fontSize: 22, fontWeight: 700, color: COLORS.textMain, lineHeight: 1.15, margin: 0 }}>
-                FC Crissier
+              <h1 className="display-font" style={{ fontSize: 25, fontWeight: 700, color: COLORS.textMain, lineHeight: 1.1, margin: 0, letterSpacing: "0.015em" }}>
+                FC CRISSIER
               </h1>
-              <p style={{ fontSize: 12.5, color: COLORS.textFaint, margin: "2px 0 0" }}>
+              <p style={{ fontSize: 12.5, color: COLORS.textFaint, margin: "3px 0 0", display: "flex", alignItems: "center", gap: 6 }}>
+                <Receipt size={12} color={COLORS.gold} />
                 Caisse des amendes{readOnly ? " — consultation" : ""}
               </p>
             </div>
@@ -791,7 +837,7 @@ export default function App() {
         {tab === "suivi" && (
           <>
             {paymentReminder && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(232, 67, 77, 0.12)", border: `1px solid ${COLORS.gold}`, borderRadius: 10, padding: "10px 14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(242, 182, 50, 0.10)", border: `1px solid ${COLORS.gold}`, borderRadius: 10, padding: "10px 14px" }}>
                 <Bell size={16} color={COLORS.gold} style={{ flexShrink: 0 }} />
                 <p style={{ fontSize: 12.5, color: COLORS.textMain, margin: 0 }}>
                   {paymentReminder.diffDays === 0 ? (
@@ -845,15 +891,17 @@ export default function App() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               <button
                 onClick={() => window.print()}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 4px", color: COLORS.textMain, background: "transparent", cursor: "pointer" }}
+                className="press"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 10, padding: "11px 4px", color: COLORS.textMain, background: COLORS.chip, cursor: "pointer" }}
               >
-                <Printer size={14} /> Exporter en PDF
+                <Printer size={14} color={COLORS.textSoft} /> Exporter en PDF
               </button>
               <button
                 onClick={copyWhatsAppRecap}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 4px", color: COLORS.textMain, background: "transparent", cursor: "pointer" }}
+                className="press"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 10, padding: "11px 4px", color: COLORS.textMain, background: COLORS.chip, cursor: "pointer" }}
               >
-                <MessageCircle size={14} /> Récap WhatsApp
+                <MessageCircle size={14} color={COLORS.success} /> Récap WhatsApp
               </button>
             </div>
 
@@ -1021,9 +1069,9 @@ export default function App() {
                   fontWeight: 600,
                   borderRadius: 999,
                   padding: "6px 12px",
-                  border: `1px solid ${showUnpaidOnly ? COLORS.red : COLORS.panelBorder}`,
-                  background: showUnpaidOnly ? "rgba(225,30,38,0.15)" : "transparent",
-                  color: showUnpaidOnly ? COLORS.red : COLORS.textSoft,
+                  border: `1px solid ${showUnpaidOnly ? COLORS.gold : COLORS.panelBorder}`,
+                  background: showUnpaidOnly ? "rgba(242,182,50,0.15)" : "transparent",
+                  color: showUnpaidOnly ? COLORS.gold : COLORS.textSoft,
                   cursor: "pointer",
                 }}
               >
@@ -1045,14 +1093,27 @@ export default function App() {
                 const hasUnpaid = playerUnpaid(pl.id) > 0;
                 const accent = hasUnpaid ? COLORS.red : COLORS.success;
                 return (
-                  <div key={pl.id} style={{ ...cardStyle, borderLeft: `3px solid ${accent}` }}>
+                  <div key={pl.id} style={{ ...cardStyle, position: "relative", overflow: "hidden", paddingLeft: 19 }}>
+                    <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: accent, boxShadow: `0 0 10px ${accent}88` }} />
                     <div
                       onClick={() => toggleExpanded(pl.id)}
                       style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", userSelect: "none", gap: 10 }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <span className="display-font" style={{ fontSize: 13, color: COLORS.textSoft }}>{pl.name.charAt(0).toUpperCase()}</span>
+                        <div
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: "50%",
+                            background: `linear-gradient(155deg, ${COLORS.chip} 0%, ${COLORS.panelSoft} 100%)`,
+                            border: `1px solid ${COLORS.chipBorder}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span className="display-font" style={{ fontSize: 14, color: COLORS.textSoft }}>{pl.name.charAt(0).toUpperCase()}</span>
                         </div>
                         <h3 style={{ fontWeight: 600, color: COLORS.textMain, fontSize: 15.5, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pl.name}</h3>
                         {pEntries.length > 0 && (
@@ -1382,11 +1443,16 @@ export default function App() {
                   <Plus size={16} />
                 </button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {players.length === 0 && <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic" }}>Aucun joueur enregistré.</p>}
                 {sortedPlayers.map((pl) => (
-                  <div key={pl.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 14, color: COLORS.textMain, padding: "6px 0", borderBottom: `1px solid ${COLORS.panelBorder}` }}>
-                    <span>{pl.name}</span>
+                  <div key={pl.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 14, color: COLORS.textMain, padding: "7px 4px", borderRadius: 8, gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span className="display-font" style={{ fontSize: 12, color: COLORS.textSoft }}>{pl.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pl.name}</span>
+                    </div>
                     <DeleteButton onConfirm={() => deletePlayer(pl.id)} />
                   </div>
                 ))}
@@ -1440,12 +1506,13 @@ export default function App() {
           left: 0,
           right: 0,
           zIndex: 20,
-          background: COLORS.panelSoft,
+          background: `linear-gradient(0deg, ${COLORS.bg} 0%, ${COLORS.panelSoft} 100%)`,
           borderTop: `1px solid ${COLORS.panelBorder}`,
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          backdropFilter: "blur(10px)",
         }}
       >
-        <div style={{ maxWidth: 720, margin: "0 auto", display: "grid", gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", display: "grid", gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)`, padding: "6px 6px 4px" }}>
           {visibleTabs.map((t) => {
             const Icon = t.icon;
             const active = tab === t.id;
@@ -1462,13 +1529,16 @@ export default function App() {
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 3,
-                  padding: "10px 2px 8px",
-                  background: "none",
+                  padding: "8px 2px 7px",
+                  margin: "0 2px",
+                  borderRadius: 12,
+                  background: active ? `${COLORS.red}1c` : "none",
                   border: "none",
                   color: active ? COLORS.red : COLORS.textFaint,
                   fontSize: 9.5,
                   fontWeight: 600,
                   cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s",
                 }}
               >
                 <Icon size={18} strokeWidth={active ? 2.4 : 2} />
