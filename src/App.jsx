@@ -24,43 +24,54 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
+const STORAGE_KEY = "fc-crissier-amendes-data-v3";
+
 const COLORS = {
-  bg: "#16233f",
-  panel: "#1f3159",
-  panelBorder: "#3a4f85",
-  chip: "#243a68",
-  chipBorder: "#4a63a0",
-  textMain: "#f5f7fb",
-  textSoft: "#c9d4ec",
-  textFaint: "#8695c0",
-  gold: "#e8434d",
+  bg: "#0a1128",
+  panel: "#121d42",
+  panelSoft: "#0e1836",
+  panelBorder: "#26356b",
+  chip: "#182752",
+  chipBorder: "#31437f",
+  textMain: "#f6f7fb",
+  textSoft: "#aab4d6",
+  textFaint: "#5f6c9a",
+  blue: "#3552a8",
+  blueDeep: "#1f3a7a",
+  red: "#e11e26",
+  redDeep: "#b71620",
+  white: "#f6f7fb",
+  gold: "#e11e26",
   goldDark: "#ffffff",
-  entryBg: "#1a2c52",
-  danger: "#f4a259",
+  entryBg: "#0e1836",
+  danger: "#f2a640",
+  success: "#34d399",
 };
+
+const CATEGORIES = ["Ponctualité & présence", "Équipement & matériel", "Discipline", "Résultats sportifs", "Collectif", "Autre"];
 
 /* Barème officiel FC Crissier — saison 2026-2027 */
 const DEFAULT_FINE_TYPES = [
-  { id: "retard-entrainement", label: "Retard entraînement (après 18h45)", amount: 10, scope: "individual" },
-  { id: "absence-entrainement", label: "Absence injustifiée — entraînement", amount: 20, scope: "individual" },
-  { id: "absence-match", label: "Absence injustifiée — match", amount: 50, scope: "individual" },
-  { id: "retard-match", label: "Retard match (moins de 1h45 avant)", amount: 25, scope: "individual" },
-  { id: "oubli-equip-match", label: "Équipements oubliés — jour de match", amount: 20, scope: "individual" },
-  { id: "oubli-equip-entrainement", label: "Oubli/mauvais équipement — entraînement", amount: 5, scope: "individual" },
-  { id: "perte-materiel", label: "Perte de matériel (ballon, gourde cassée)", amount: 5, scope: "individual" },
-  { id: "telephone-vestiaire", label: "Téléphone qui sonne au vestiaire", amount: 5, scope: "individual" },
-  { id: "materiel-oublie-terrain", label: "Matériel du club oublié sur le terrain", amount: 5, scope: "individual" },
-  { id: "materiel-perso-oublie", label: "Matériel personnel oublié sur le terrain", amount: 5, scope: "individual" },
-  { id: "carton-jaune", label: "Carton jaune (pour la gueule)", amount: 30, scope: "individual" },
-  { id: "carton-rouge", label: "Carton rouge (pour la gueule)", amount: 50, scope: "individual" },
-  { id: "puff-vestiaire", label: "Puff au vestiaire — jour de match", amount: 25, scope: "individual" },
-  { id: "snuz-douche", label: "Snuz qui traîne (douches / par terre)", amount: 5, scope: "individual" },
-  { id: "snuz-terrain", label: "Snuz visible sur le terrain", amount: 10, scope: "individual" },
-  { id: "clean-sheet-victoire", label: "Clean sheet + victoire (coach/s)", amount: 50, scope: "individual" },
-  { id: "defaite-3buts", label: "Défaite par 3 buts d'écart ou plus (tout l'effectif)", amount: 10, scope: "individual" },
-  { id: "perte-semaine", label: "Perdre toute la semaine (match + entraînement)", amount: 5, scope: "individual" },
-  { id: "materiel-non-ramasse", label: "Matériel non ramassé après une défaite", amount: 5, scope: "team" },
-  { id: "vestiaire-sale", label: "Vestiaire sale (Red Bull, bière, apéro, snuz, tape)", amount: 5, scope: "team" },
+  { id: "retard-entrainement", label: "Retard entraînement (après 18h45)", amount: 10, scope: "individual", category: "Ponctualité & présence" },
+  { id: "absence-entrainement", label: "Absence injustifiée — entraînement", amount: 20, scope: "individual", category: "Ponctualité & présence" },
+  { id: "absence-match", label: "Absence injustifiée — match", amount: 50, scope: "individual", category: "Ponctualité & présence" },
+  { id: "retard-match", label: "Retard match (moins de 1h45 avant)", amount: 25, scope: "individual", category: "Ponctualité & présence" },
+  { id: "oubli-equip-match", label: "Équipements oubliés — jour de match", amount: 20, scope: "individual", category: "Équipement & matériel" },
+  { id: "oubli-equip-entrainement", label: "Oubli/mauvais équipement — entraînement", amount: 5, scope: "individual", category: "Équipement & matériel" },
+  { id: "perte-materiel", label: "Perte de matériel (ballon, gourde cassée)", amount: 5, scope: "individual", category: "Équipement & matériel" },
+  { id: "materiel-oublie-terrain", label: "Matériel du club oublié sur le terrain", amount: 5, scope: "individual", category: "Équipement & matériel" },
+  { id: "materiel-perso-oublie", label: "Matériel personnel oublié sur le terrain", amount: 5, scope: "individual", category: "Équipement & matériel" },
+  { id: "carton-jaune", label: "Carton jaune (pour la gueule)", amount: 30, scope: "individual", category: "Discipline" },
+  { id: "carton-rouge", label: "Carton rouge (pour la gueule)", amount: 50, scope: "individual", category: "Discipline" },
+  { id: "telephone-vestiaire", label: "Téléphone qui sonne au vestiaire", amount: 5, scope: "individual", category: "Discipline" },
+  { id: "puff-vestiaire", label: "Puff au vestiaire — jour de match", amount: 25, scope: "individual", category: "Discipline" },
+  { id: "snuz-douche", label: "Snuz qui traîne (douches / par terre)", amount: 5, scope: "individual", category: "Discipline" },
+  { id: "snuz-terrain", label: "Snuz visible sur le terrain", amount: 10, scope: "individual", category: "Discipline" },
+  { id: "clean-sheet-victoire", label: "Clean sheet + victoire (coach/s)", amount: 50, scope: "individual", category: "Résultats sportifs" },
+  { id: "defaite-3buts", label: "Défaite par 3 buts d'écart ou plus (tout l'effectif)", amount: 10, scope: "individual", category: "Résultats sportifs" },
+  { id: "perte-semaine", label: "Perdre toute la semaine (match + entraînement)", amount: 5, scope: "individual", category: "Résultats sportifs" },
+  { id: "materiel-non-ramasse", label: "Matériel non ramassé après une défaite", amount: 5, scope: "team", category: "Collectif" },
+  { id: "vestiaire-sale", label: "Vestiaire sale (Red Bull, bière, apéro, snuz, tape)", amount: 5, scope: "team", category: "Collectif" },
 ];
 
 const CHARTE_TEXT = {
@@ -136,6 +147,45 @@ function lastFridayOfMonth(year, monthIndex0) {
   return friday;
 }
 
+function groupFinesByCategory(list) {
+  const map = {};
+  list.forEach((ft) => {
+    const cat = ft.category || "Autre";
+    if (!map[cat]) map[cat] = [];
+    map[cat].push(ft);
+  });
+  const ordered = [];
+  CATEGORIES.forEach((c) => {
+    if (map[c]) {
+      ordered.push([c, map[c]]);
+      delete map[c];
+    }
+  });
+  Object.keys(map).forEach((c) => ordered.push([c, map[c]]));
+  return ordered;
+}
+
+/* Ballon dessiné à la main (SVG) — pas de dépendance externe */
+function SoccerBall({ size = 18, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" className={className} style={{ flexShrink: 0 }}>
+      <circle cx="16" cy="16" r="14.5" fill="#ffffff" stroke="#1a1a1a" strokeWidth="1.2" />
+      <g fill="#1a1a1a">
+        <polygon points="16,9 20,12 18.5,17 13.5,17 12,12" />
+        <polygon points="16,9 12,12 8.5,10 10,5.5 16,4.5 22,5.5 23.5,10 20,12" fill="none" stroke="#1a1a1a" strokeWidth="1" />
+      </g>
+      <g fill="none" stroke="#1a1a1a" strokeWidth="1">
+        <path d="M13.5,17 L9,21.5 L4.5,19.5" />
+        <path d="M18.5,17 L23,21.5 L27.5,19.5" />
+        <path d="M12,12 L8.5,10 L4.5,11.5" />
+        <path d="M20,12 L23.5,10 L27.5,11.5" />
+        <path d="M9,21.5 L10.5,27" />
+        <path d="M23,21.5 L21.5,27" />
+      </g>
+    </svg>
+  );
+}
+
 /* Bouton "supprimer" avec confirmation en ligne (pas de popup superposée) */
 function DeleteButton({ onConfirm, size = 15 }) {
   const [confirming, setConfirming] = useState(false);
@@ -208,6 +258,7 @@ export default function App() {
   const [newFineLabel, setNewFineLabel] = useState("");
   const [newFineAmount, setNewFineAmount] = useState("");
   const [newFineScope, setNewFineScope] = useState("individual");
+  const [newFineCategory, setNewFineCategory] = useState(CATEGORIES[0]);
   const [toast, setToast] = useState(null);
   const [tab, setTab] = useState("suivi");
   const [closedMonths, setClosedMonths] = useState({});
@@ -220,6 +271,8 @@ export default function App() {
   });
   // { targetId (playerId ou "__team__"), fineTypeId, date }
   const [pendingFine, setPendingFine] = useState(null);
+  const [viewingPlayerId, setViewingPlayerId] = useState(null);
+  const [showUnpaidOnly, setShowUnpaidOnly] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -317,10 +370,11 @@ export default function App() {
     const label = newFineLabel.trim();
     const amount = parseFloat(newFineAmount);
     if (!label || isNaN(amount)) return;
-    setFineTypes((f) => [...f, { id: uid(), label, amount, scope: newFineScope }]);
+    setFineTypes((f) => [...f, { id: uid(), label, amount, scope: newFineScope, category: newFineCategory }]);
     setNewFineLabel("");
     setNewFineAmount("");
     setNewFineScope("individual");
+    setNewFineCategory(CATEGORIES[0]);
   }
 
   function deleteFineType(id) {
@@ -440,6 +494,22 @@ export default function App() {
 
   const printRows = sortedPlayers.map((pl) => ({ name: pl.name, total: playerTotal(pl.id) }));
 
+  function playerAllEntries(playerId) {
+    return entries.filter((e) => e.playerId === playerId).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  }
+
+  function playerAllTotal(playerId) {
+    return entries.filter((e) => e.playerId === playerId).reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  function playerPaidTotal(playerId) {
+    return entries.filter((e) => e.playerId === playerId && e.paid).reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  const viewingPlayer = viewingPlayerId ? players.find((p) => p.id === viewingPlayerId) : null;
+
+  const displayedPlayers = showUnpaidOnly ? sortedPlayers.filter((pl) => playerUnpaid(pl.id) > 0) : sortedPlayers;
+
   const visibleTabs = readOnly ? TABS.filter((t) => t.id !== "bareme" && t.id !== "effectif") : TABS;
 
   const paymentReminder = (() => {
@@ -461,9 +531,9 @@ export default function App() {
       return { m, total, paid, unpaid: total - paid, closed: !!closedMonths[m] };
     });
 
-  const cardStyle = { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 12, padding: 16 };
+  const cardStyle = { background: COLORS.panel, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 14, padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.18)" };
   const inputStyle = { background: COLORS.bg, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "10px 12px", fontSize: 14, color: COLORS.textMain };
-  const goldBtn = { background: COLORS.gold, color: COLORS.goldDark, borderRadius: 8, padding: "10px 14px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 };
+  const goldBtn = { background: COLORS.red, color: "#ffffff", borderRadius: 999, padding: "10px 14px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 };
 
   function FineForm({ targetId }) {
     const formOpenHere = pendingFine && pendingFine.targetId === targetId;
@@ -486,6 +556,7 @@ export default function App() {
           <button
             onClick={confirmAddEntry}
             disabled={!pendingFine.date}
+            className="press"
             style={{ ...goldBtn, padding: "8px 14px", fontSize: 13, gap: 6, cursor: pendingFine.date ? "pointer" : "not-allowed" }}
           >
             <Check size={14} /> Ajouter
@@ -521,7 +592,7 @@ export default function App() {
                 borderRadius: 999,
                 padding: "3px 9px",
                 background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
-                color: en.paid ? "#4ade80" : COLORS.gold,
+                color: en.paid ? COLORS.success : COLORS.gold,
               }}
             >
               {en.paid ? <CircleCheck size={12} /> : <CircleDollarSign size={12} />}
@@ -544,7 +615,7 @@ export default function App() {
                 border: "none",
                 cursor: "pointer",
                 background: en.paid ? "rgba(74, 222, 128, 0.15)" : "rgba(232, 67, 77, 0.18)",
-                color: en.paid ? "#4ade80" : COLORS.gold,
+                color: en.paid ? COLORS.success : COLORS.gold,
               }}
             >
               {en.paid ? <CircleCheck size={12} /> : <CircleDollarSign size={12} />}
@@ -557,18 +628,74 @@ export default function App() {
     );
   }
 
+  if (!loaded) {
+    return (
+      <div style={{ minHeight: "100vh", background: COLORS.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&display=swap');
+          @keyframes pulseLogo { 0%, 100% { opacity: 0.5; transform: scale(0.96); } 50% { opacity: 1; transform: scale(1); } }
+        `}</style>
+        <img
+          src="https://www.fccrissier.ch/images/LOGO_FC_CRISSIER_SITE_3-cm.png"
+          alt="FC Crissier"
+          style={{ width: 56, height: 56, objectFit: "contain", animation: "pulseLogo 1.3s ease-in-out infinite" }}
+        />
+        <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 13, color: COLORS.textFaint, letterSpacing: "0.02em", margin: 0 }}>
+          Chargement de la caisse…
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: COLORS.bg, color: COLORS.textMain, fontFamily: "'Inter', sans-serif", position: "relative", overflow: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap');
-        .display-font { font-family: 'Archivo Black', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+        .display-font { font-family: 'Space Grotesk', sans-serif; font-variant-numeric: tabular-nums; }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
         .print-sheet { display: none; }
         @media print {
           .no-print { display: none !important; }
           .print-sheet { display: block !important; }
         }
+        .press:active { transform: scale(0.96); }
+        .press { transition: transform 0.1s ease; }
+        .trim-rule {
+          height: 3px;
+          background: linear-gradient(90deg, ${COLORS.red} 0 33%, ${COLORS.white} 33% 66%, ${COLORS.blue} 66% 100%);
+        }
+        ::-webkit-scrollbar { width: 0px; height: 0px; }
+        .pitch-stripes {
+          background-image: repeating-linear-gradient(
+            100deg,
+            rgba(255,255,255,0.012) 0px,
+            rgba(255,255,255,0.012) 60px,
+            transparent 60px,
+            transparent 120px
+          );
+        }
+        @keyframes ballBounce {
+          0% { transform: translateY(0) rotate(0deg); }
+          30% { transform: translateY(-7px) rotate(90deg); }
+          60% { transform: translateY(0) rotate(150deg); }
+          80% { transform: translateY(-3px) rotate(190deg); }
+          100% { transform: translateY(0) rotate(220deg); }
+        }
+        .ball-bounce { animation: ballBounce 0.6s ease-out; }
+        @keyframes toastIn {
+          from { transform: translate(-50%, 12px); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .toast-in { animation: toastIn 0.25s ease-out forwards; }
+        @keyframes confettiFall {
+          0% { transform: translateY(-6px) rotate(0deg); opacity: 0; }
+          15% { opacity: 1; }
+          100% { transform: translateY(46px) rotate(280deg); opacity: 0; }
+        }
+        .confetti-dot { animation: confettiFall 1.6s ease-in infinite; }
       `}</style>
+
+      <div className="pitch-stripes" style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />
 
       <div
         style={{
@@ -585,53 +712,75 @@ export default function App() {
       />
 
       <div className="no-print" style={{ position: "relative", zIndex: 1 }}>
-      <header style={{ borderBottom: `1px solid ${COLORS.panelBorder}`, padding: "22px 20px 0" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 18 }}>
-            <div>
-              <p style={{ color: COLORS.gold, fontSize: 12, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
-                Caisse des amendes {readOnly && "· lecture seule"}
+      <header style={{ background: `linear-gradient(180deg, ${COLORS.panelSoft} 0%, ${COLORS.bg} 100%)` }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 20px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+            <div style={{ width: 46, height: 46, borderRadius: 12, background: COLORS.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 4px 14px rgba(0,0,0,0.35)" }}>
+              <Receipt size={21} color={COLORS.blueDeep} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1 className="display-font" style={{ fontSize: 22, fontWeight: 700, color: COLORS.textMain, lineHeight: 1.15, margin: 0 }}>
+                FC Crissier
+              </h1>
+              <p style={{ fontSize: 12.5, color: COLORS.textFaint, margin: "2px 0 0" }}>
+                Caisse des amendes{readOnly ? " — consultation" : ""}
               </p>
-              <h1 className="display-font" style={{ fontSize: 28, color: COLORS.textMain, lineHeight: 1 }}>FC CRISSIER</h1>
             </div>
-            <div style={{ width: 44, height: 44, borderRadius: "50%", background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Receipt size={20} color={COLORS.goldDark} />
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)`, gap: 2 }}>
-            {visibleTabs.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "8px 0 12px",
-                    background: "none",
-                    border: "none",
-                    borderBottom: active ? `2px solid ${COLORS.gold}` : "2px solid transparent",
-                    color: active ? COLORS.gold : COLORS.textFaint,
-                    fontSize: 9.5,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  <Icon size={14} />
-                  {t.label}
-                </button>
-              );
-            })}
           </div>
         </div>
+        <div className="trim-rule" />
       </header>
 
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 24 }}>
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "20px 20px 96px", display: "flex", flexDirection: "column", gap: 20 }}>
+        {viewingPlayer && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <button
+              onClick={() => setViewingPlayerId(null)}
+              className="press"
+              style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, border: "none", background: "none", color: COLORS.textSoft, cursor: "pointer", padding: 0 }}
+            >
+              ← Retour
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span className="display-font" style={{ fontSize: 17, color: COLORS.textSoft }}>{viewingPlayer.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <h2 className="display-font" style={{ fontSize: 22, color: COLORS.textMain, margin: 0 }}>{viewingPlayer.name}</h2>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              <div style={{ ...cardStyle, padding: 12, textAlign: "center" }}>
+                <p style={{ fontSize: 10, color: COLORS.textFaint, margin: "0 0 4px", fontWeight: 600 }}>Total saison</p>
+                <p className="display-font" style={{ fontSize: 16, color: COLORS.textMain, margin: 0 }}>{playerAllTotal(viewingPlayer.id).toFixed(2)}.-</p>
+              </div>
+              <div style={{ ...cardStyle, padding: 12, textAlign: "center" }}>
+                <p style={{ fontSize: 10, color: COLORS.textFaint, margin: "0 0 4px", fontWeight: 600 }}>Payé</p>
+                <p className="display-font" style={{ fontSize: 16, color: COLORS.success, margin: 0 }}>{playerPaidTotal(viewingPlayer.id).toFixed(2)}.-</p>
+              </div>
+              <div style={{ ...cardStyle, padding: 12, textAlign: "center" }}>
+                <p style={{ fontSize: 10, color: COLORS.textFaint, margin: "0 0 4px", fontWeight: 600 }}>Impayé</p>
+                <p className="display-font" style={{ fontSize: 16, color: COLORS.red, margin: 0 }}>{playerUnpaid(viewingPlayer.id).toFixed(2)}.-</p>
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <h4 style={{ fontSize: 13, fontWeight: 700, color: COLORS.textMain, margin: "0 0 12px" }}>Historique complet</h4>
+              {playerAllEntries(viewingPlayer.id).length === 0 ? (
+                <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic", margin: 0 }}>Aucune amende enregistrée pour l'instant.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {playerAllEntries(viewingPlayer.id).map((en) => (
+                    <EntryRow key={en.id} en={en} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!viewingPlayer && (
+          <>
         {!storageOk && (
           <div style={{ background: "#3a2a12", border: "1px solid #7a5a20", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#f2d98a" }}>
             Connexion à la base de données impossible — vérifie ta connexion internet ou la configuration Supabase. Les changements ne seront pas sauvegardés tant que ce message est affiché.
@@ -654,22 +803,41 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ ...cardStyle, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: COLORS.chip, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Wallet size={19} color={COLORS.gold} />
-              </div>
-              <div style={{ display: "flex", flex: 1, justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                  <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: COLORS.textFaint, margin: 0, fontWeight: 600 }}>Ce mois</p>
-                  <p className="display-font" style={{ fontSize: 18, color: COLORS.textMain, margin: 0 }}>{grandTotalMonth.toFixed(2)}.-</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: COLORS.textFaint, margin: 0, fontWeight: 600 }}>Année {year}</p>
-                  <p className="display-font" style={{ fontSize: 18, color: COLORS.textMain, margin: 0 }}>{totalYear.toFixed(2)}.-</p>
-                </div>
-                <div>
-                  <p style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: COLORS.textFaint, margin: 0, fontWeight: 600 }}>Cagnotte totale</p>
-                  <p className="display-font" style={{ fontSize: 18, color: COLORS.gold, margin: 0 }}>{totalAllTime.toFixed(2)}.-</p>
+            <div
+              style={{
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: 18,
+                padding: "22px 20px",
+                background: `linear-gradient(135deg, ${COLORS.blueDeep} 0%, ${COLORS.panel} 60%)`,
+                border: `1px solid ${COLORS.panelBorder}`,
+              }}
+            >
+              {/* Lueurs "projecteurs de stade" */}
+              <div style={{ position: "absolute", top: -50, left: -30, width: 160, height: 160, borderRadius: "50%", background: COLORS.red, opacity: 0.22, filter: "blur(42px)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", bottom: -60, right: 40, width: 180, height: 180, borderRadius: "50%", background: "#4f77e0", opacity: 0.18, filter: "blur(48px)", pointerEvents: "none" }} />
+              {/* Rond central de terrain, en accent discret */}
+              <div style={{ position: "absolute", left: -34, bottom: -34, width: 100, height: 100, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.10)", pointerEvents: "none" }} />
+
+              <img
+                src="https://www.fccrissier.ch/images/LOGO_FC_CRISSIER_SITE_3-cm.png"
+                alt=""
+                style={{ position: "absolute", right: -18, top: "50%", transform: "translateY(-50%)", width: 130, height: 130, objectFit: "contain", opacity: 0.14, pointerEvents: "none", zIndex: 1 }}
+              />
+              <div style={{ position: "relative", zIndex: 2 }}>
+                <p style={{ fontSize: 12.5, color: COLORS.textSoft, margin: 0, fontWeight: 500 }}>{monthLabel(month)}</p>
+                <p className="display-font" style={{ fontSize: 44, fontWeight: 700, color: COLORS.textMain, margin: "2px 0 14px", lineHeight: 1, textShadow: "0 0 24px rgba(225,30,38,0.35)" }}>
+                  {grandTotalMonth.toFixed(2)}.-
+                </p>
+                <div style={{ display: "flex", gap: 22 }}>
+                  <div>
+                    <p style={{ fontSize: 10.5, color: COLORS.textFaint, margin: 0, fontWeight: 600 }}>Année {year}</p>
+                    <p className="display-font" style={{ fontSize: 16, color: COLORS.textMain, margin: 0 }}>{totalYear.toFixed(2)}.-</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 10.5, color: COLORS.textFaint, margin: 0, fontWeight: 600 }}>Cagnotte totale</p>
+                    <p className="display-font" style={{ fontSize: 16, color: COLORS.red, margin: 0 }}>{totalAllTime.toFixed(2)}.-</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -708,6 +876,31 @@ export default function App() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {monthEntries.length > 0 && unpaidByPlayer.length === 0 && teamUnpaid === 0 && (
+              <div style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, background: "rgba(52, 211, 153, 0.10)", border: `1px solid ${COLORS.success}`, borderRadius: 10, padding: "10px 14px" }}>
+                {[10, 28, 46, 64, 82].map((left, i) => (
+                  <span
+                    key={i}
+                    className="confetti-dot"
+                    style={{
+                      position: "absolute",
+                      left: `${left}%`,
+                      top: 4,
+                      width: 5,
+                      height: 5,
+                      borderRadius: i % 2 === 0 ? "50%" : 2,
+                      background: i % 3 === 0 ? COLORS.red : i % 3 === 1 ? "#4f77e0" : COLORS.success,
+                      animationDelay: `${i * 0.22}s`,
+                    }}
+                  />
+                ))}
+                <CircleCheck size={16} color={COLORS.success} style={{ flexShrink: 0 }} />
+                <p style={{ fontSize: 12.5, color: COLORS.textMain, margin: 0 }}>
+                  <strong>Tout est payé</strong> pour {monthLabel(month)} 🎉
+                </p>
               </div>
             )}
 
@@ -763,7 +956,7 @@ export default function App() {
               <div style={{ border: `1px dashed ${COLORS.panelBorder}`, borderRadius: 12, padding: 32, textAlign: "center" }}>
                 <Users size={28} color={COLORS.textSoft} style={{ margin: "0 auto 12px" }} />
                 <p style={{ fontSize: 14, color: COLORS.textSoft, marginBottom: readOnly ? 0 : 16 }}>Aucun joueur pour l'instant.{!readOnly && " Ajoute l'effectif pour commencer."}</p>
-                {!readOnly && <button onClick={() => setTab("effectif")} style={goldBtn}>Ajouter des joueurs</button>}
+                {!readOnly && <button onClick={() => setTab("effectif")} className="press" style={goldBtn}>Ajouter des joueurs</button>}
               </div>
             )}
 
@@ -815,40 +1008,83 @@ export default function App() {
               </div>
             )}
 
+            {sortedPlayers.length > 0 && (
+              <button
+                onClick={() => setShowUnpaidOnly((s) => !s)}
+                className="press"
+                style={{
+                  alignSelf: "flex-start",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  borderRadius: 999,
+                  padding: "6px 12px",
+                  border: `1px solid ${showUnpaidOnly ? COLORS.red : COLORS.panelBorder}`,
+                  background: showUnpaidOnly ? "rgba(225,30,38,0.15)" : "transparent",
+                  color: showUnpaidOnly ? COLORS.red : COLORS.textSoft,
+                  cursor: "pointer",
+                }}
+              >
+                <CircleDollarSign size={13} /> Impayés uniquement
+              </button>
+            )}
+
+            {showUnpaidOnly && displayedPlayers.length === 0 && sortedPlayers.length > 0 && (
+              <p style={{ fontSize: 13, color: COLORS.textFaint, fontStyle: "italic", margin: 0 }}>
+                Tout le monde est à jour ✅
+              </p>
+            )}
+
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {sortedPlayers.map((pl) => {
+              {displayedPlayers.map((pl) => {
                 const total = playerTotal(pl.id);
                 const pEntries = playerEntries(pl.id);
                 const isOpen = !!expanded[pl.id];
+                const hasUnpaid = playerUnpaid(pl.id) > 0;
+                const accent = hasUnpaid ? COLORS.red : COLORS.success;
                 return (
-                  <div key={pl.id} style={cardStyle}>
+                  <div key={pl.id} style={{ ...cardStyle, borderLeft: `3px solid ${accent}` }}>
                     <div
                       onClick={() => toggleExpanded(pl.id)}
-                      style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", userSelect: "none" }}
+                      style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", userSelect: "none", gap: 10 }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <ChevronDown size={18} color={COLORS.textSoft} style={{ transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                        <h3 style={{ fontWeight: 700, color: COLORS.textMain, fontSize: 17, margin: 0 }}>{pl.name}</h3>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span className="display-font" style={{ fontSize: 13, color: COLORS.textSoft }}>{pl.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <h3 style={{ fontWeight: 600, color: COLORS.textMain, fontSize: 15.5, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pl.name}</h3>
                         {pEntries.length > 0 && (
-                          <span style={{ fontSize: 11, color: COLORS.textSoft, background: COLORS.bg, borderRadius: 999, padding: "2px 8px" }}>{pEntries.length}</span>
+                          <span style={{ fontSize: 11, color: COLORS.textSoft, background: COLORS.bg, borderRadius: 999, padding: "2px 8px", flexShrink: 0 }}>{pEntries.length}</span>
                         )}
                       </div>
-                      <span className="display-font" style={{ fontSize: 19, color: total > 0 ? COLORS.gold : COLORS.textFaint }}>{total.toFixed(2)}.-</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                        <span className="display-font" style={{ fontSize: 17, color: total > 0 ? COLORS.textMain : COLORS.textFaint }}>{total.toFixed(2)}.-</span>
+                        <ChevronDown size={16} color={COLORS.textFaint} style={{ transition: "transform 0.15s", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                      </div>
                     </div>
 
                     {isOpen && (
                       <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
                         {!readOnly && (
                           <>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                              {individualFineTypes.map((ft) => (
-                                <button
-                                  key={ft.id}
-                                  onClick={(e) => { e.stopPropagation(); openFineForm(pl.id, ft.id); }}
-                                  style={{ fontSize: 13, fontWeight: 600, background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 999, padding: "7px 14px", color: COLORS.textMain, cursor: "pointer" }}
-                                >
-                                  {ft.label} <span style={{ color: COLORS.gold }}>{ft.amount}.-</span>
-                                </button>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                              {groupFinesByCategory(individualFineTypes).map(([cat, items]) => (
+                                <div key={cat}>
+                                  <p style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.textFaint, margin: "0 0 6px", letterSpacing: "0.01em" }}>{cat}</p>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                    {items.map((ft) => (
+                                      <button
+                                        key={ft.id}
+                                        onClick={(e) => { e.stopPropagation(); openFineForm(pl.id, ft.id); }}
+                                        style={{ fontSize: 13, fontWeight: 600, background: COLORS.chip, border: `1px solid ${COLORS.chipBorder}`, borderRadius: 999, padding: "7px 14px", color: COLORS.textMain, cursor: "pointer" }}
+                                      >
+                                        {ft.label} <span style={{ color: COLORS.gold }}>{ft.amount}.-</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
                               ))}
                             </div>
                             <FineForm targetId={pl.id} />
@@ -861,6 +1097,16 @@ export default function App() {
                             pEntries.map((en) => <EntryRow key={en.id} en={en} />)
                           )}
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewingPlayerId(pl.id);
+                          }}
+                          className="press"
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12.5, fontWeight: 600, border: `1px solid ${COLORS.panelBorder}`, borderRadius: 8, padding: "9px 0", color: COLORS.textSoft, background: "transparent", cursor: "pointer" }}
+                        >
+                          Voir la fiche complète →
+                        </button>
                       </div>
                     )}
                   </div>
@@ -879,16 +1125,23 @@ export default function App() {
             </div>
 
             <div style={cardStyle}>
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: COLORS.gold, margin: "0 0 12px" }}>Amendes individuelles</h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {individualFineTypes.map((ft) => (
-                  <div key={ft.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ flex: 1, fontSize: 13.5, color: COLORS.textMain }}>{ft.label}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <input type="number" value={ft.amount} onChange={(e) => updateFineAmount(ft.id, e.target.value)} style={{ ...inputStyle, width: 60, padding: "6px 8px", textAlign: "right" }} />
-                      <span style={{ fontSize: 12, color: COLORS.gold }}>.-</span>
+              <h4 style={{ fontSize: 14, fontWeight: 700, color: COLORS.gold, margin: "0 0 14px" }}>Amendes individuelles</h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {groupFinesByCategory(individualFineTypes).map(([cat, items]) => (
+                  <div key={cat}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: COLORS.textFaint, margin: "0 0 8px" }}>{cat}</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {items.map((ft) => (
+                        <div key={ft.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ flex: 1, fontSize: 13.5, color: COLORS.textMain }}>{ft.label}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <input type="number" value={ft.amount} onChange={(e) => updateFineAmount(ft.id, e.target.value)} style={{ ...inputStyle, width: 60, padding: "6px 8px", textAlign: "right" }} />
+                            <span style={{ fontSize: 12, color: COLORS.gold }}>.-</span>
+                          </div>
+                          <DeleteButton onConfirm={() => deleteFineType(ft.id)} />
+                        </div>
+                      ))}
                     </div>
-                    <DeleteButton onConfirm={() => deleteFineType(ft.id)} />
                   </div>
                 ))}
               </div>
@@ -925,7 +1178,16 @@ export default function App() {
                     <option value="team" style={{ background: COLORS.panel }}>Collective (équipe)</option>
                   </select>
                 </div>
-                <button onClick={addFineType} style={{ ...goldBtn, gap: 8 }}>
+                <select
+                  value={newFineCategory}
+                  onChange={(e) => setNewFineCategory(e.target.value)}
+                  style={inputStyle}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c} style={{ background: COLORS.panel }}>{c}</option>
+                  ))}
+                </select>
+                <button onClick={addFineType} className="press" style={{ ...goldBtn, gap: 8 }}>
                   <Plus size={16} /> Ajouter au barème
                 </button>
               </div>
@@ -999,7 +1261,7 @@ export default function App() {
             </div>
 
             <div style={cardStyle}>
-              <div style={{ width: "100%", height: 260 }}>
+              <div style={{ width: "100%", height: 240 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={COLORS.panelBorder} vertical={false} />
@@ -1014,12 +1276,9 @@ export default function App() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-
-            <div style={cardStyle}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${COLORS.panelBorder}` }}>
                 <span style={{ color: COLORS.textSoft }}>Total {year}</span>
-                <span className="display-font" style={{ color: COLORS.gold, fontSize: 16 }}>{totalYear.toFixed(2)}.-</span>
+                <span className="display-font" style={{ color: COLORS.textMain, fontSize: 16 }}>{totalYear.toFixed(2)}.-</span>
               </div>
             </div>
 
@@ -1067,7 +1326,7 @@ export default function App() {
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 700, color: COLORS.textMain, margin: 0 }}>{monthLabel(m)}</h3>
                     {closed && (
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: "#4ade80", background: "rgba(74, 222, 128, 0.15)", borderRadius: 999, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: COLORS.success, background: "rgba(74, 222, 128, 0.15)", borderRadius: 999, padding: "2px 8px", display: "flex", alignItems: "center", gap: 4 }}>
                         <Lock size={10} /> Clôturé
                       </span>
                     )}
@@ -1075,7 +1334,7 @@ export default function App() {
                   <span className="display-font" style={{ fontSize: 17, color: COLORS.gold }}>{total.toFixed(2)}.-</span>
                 </div>
                 <div style={{ display: "flex", gap: 16, fontSize: 12.5, color: COLORS.textSoft, marginBottom: closed || !readOnly ? 12 : 0 }}>
-                  <span>Payé : <strong style={{ color: "#4ade80" }}>{paid.toFixed(2)}.-</strong></span>
+                  <span>Payé : <strong style={{ color: COLORS.success }}>{paid.toFixed(2)}.-</strong></span>
                   <span>Impayé : <strong style={{ color: COLORS.gold }}>{unpaid.toFixed(2)}.-</strong></span>
                 </div>
                 {!readOnly && (
@@ -1119,7 +1378,7 @@ export default function App() {
                   placeholder="Nom du joueur"
                   style={{ ...inputStyle, flex: 1 }}
                 />
-                <button onClick={addPlayer} style={{ ...goldBtn, padding: "10px 14px" }} aria-label="Ajouter joueur">
+                <button onClick={addPlayer} className="press" style={{ ...goldBtn, padding: "10px 14px" }} aria-label="Ajouter joueur">
                   <Plus size={16} />
                 </button>
               </div>
@@ -1160,13 +1419,65 @@ export default function App() {
         <p style={{ textAlign: "center", fontSize: 11, color: COLORS.textFaint, paddingTop: 8 }}>
           Toutes les données (joueurs, barème, amendes) sont enregistrées automatiquement.
         </p>
+          </>
+        )}
       </main>
 
       {toast && (
-        <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: COLORS.gold, color: COLORS.goldDark, fontSize: 14, fontWeight: 700, padding: "10px 18px", borderRadius: 999, boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
+        <div
+          className="toast-in"
+          style={{ position: "fixed", bottom: 84, left: "50%", background: COLORS.red, color: "#ffffff", fontSize: 14, fontWeight: 700, padding: "9px 16px", borderRadius: 999, boxShadow: "0 4px 14px rgba(0,0,0,0.4)", zIndex: 30, display: "flex", alignItems: "center", gap: 8 }}
+        >
+          <SoccerBall size={16} className="ball-bounce" />
           {toast}
         </div>
       )}
+
+      <nav
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          background: COLORS.panelSoft,
+          borderTop: `1px solid ${COLORS.panelBorder}`,
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
+        <div style={{ maxWidth: 720, margin: "0 auto", display: "grid", gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+          {visibleTabs.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setViewingPlayerId(null);
+                  setTab(t.id);
+                }}
+                className="press"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 3,
+                  padding: "10px 2px 8px",
+                  background: "none",
+                  border: "none",
+                  color: active ? COLORS.red : COLORS.textFaint,
+                  fontSize: 9.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <Icon size={18} strokeWidth={active ? 2.4 : 2} />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
       </div>
 
       <div className="print-sheet" style={{ background: "#ffffff", color: "#111111", padding: 32, fontFamily: "'Inter', sans-serif" }}>
